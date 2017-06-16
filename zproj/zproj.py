@@ -1,7 +1,7 @@
 import re
 import collections
 
-from zproj.peeker import Peeker
+from peeker import Peeker
 
 
 class ZProjError(Exception):
@@ -23,6 +23,11 @@ class ZProj(object):
         """Initialize an empty project."""
         self._key_dict = {}
 
+    @property
+    def keys(self):
+        """Return iterable over keys in project."""
+        yield from self._key_dict.keys()
+
     def map_key(self, key, values):
         """Map key to iterable values."""
         if key not in self._key_dict:
@@ -34,6 +39,160 @@ class ZProj(object):
         if key not in self._key_dict:
             raise ZProjError('ZProj does not define key `{}`.'.format(key))
         return list(self._key_dict[key])
+
+
+class ZProjTokenizer(object):    
+    """Class to generate tokens from ZProj source file."""
+
+    def __init__(self):
+        """Initialize "empty" ZProjTokenizer object."""
+        self._errors = []
+
+    # PUBLIC INTERFACE
+
+    def tokenize_file(self, filename):
+        """Generate tokens from source in file named filename."""
+        with open(filename, 'r') as file:
+            lines = list(file)
+
+        for line_number, line_string in enumerate(lines):
+            for mo in re.finditer(TOKEN_REGEX, line_string, flags=re.VERBOSE):
+                tok = Token(
+                    kind=mo.lastgroup,
+                    value=mo.group(mo.lastgroup),
+                    filename=filename,
+                    line=line_number,
+                    column=mo.start(mo.lastgroup))
+
+                if mo.lastgroup == 'ERROR':
+                    self._log_error(self._get_error_message(tok))
+
+                elif mo.lastgroup != 'COMMENT':
+                    yield tok
+
+    @property
+    def error_list(self):
+        """Return list of errors encountered."""
+        return self._errors
+
+    # PRIVATE HELPERS
+
+    def _get_error_message(self, token):
+        """Return error message reflecting that token was encountered."""
+        return '(Line {}, Column {}) Unexpected token {}.'.format(
+            tok.line, tok.column, tok.value)
+
+    def _log_error(self, message):
+        """Record error with message."""
+        self._errors.append(message)
+
+
+
+class ZProjParser(object):
+
+    def __init__(self):
+        pass
+
+    def parse_tokens(self, tokens):
+        """Return ZProj object from iterable tokens."""
+        
+class ZProjCompiler(object):
+    """Class to generate tokens from ZProj source file."""
+
+    def __init__(self):
+        """Initialize "empty" ZProjCompiler object."""
+        self._errors = []
+
+    # PUBLIC INTERFACE
+
+    @property
+    def error_list(self):
+        """Return list of errors encountered."""
+        return self._errors
+
+    def compile_file(self, filename):
+        """Create ZProj object from source in file named filename.
+
+        If the source contains errors and thus cannot be compiled,
+        ZProjError is raised.
+
+        """
+        tokens = list(self.tokenize_file(filename))
+        
+
+    # PRIVATE HELPERS
+
+    def tokenize_file(self, filename):
+        """Generate tokens from source in file named filename."""
+        with open(filename, 'r') as file:
+            lines = list(file)
+
+        for line_number, line_string in enumerate(lines):
+            for mo in re.finditer(TOKEN_REGEX, line_string, flags=re.VERBOSE):
+                tok = Token(
+                    kind=mo.lastgroup,
+                    value=mo.group(mo.lastgroup),
+                    filename=filename,
+                    line=line_number,
+                    column=mo.start(mo.lastgroup))
+
+                if mo.lastgroup == 'ERROR':
+                    self._log_error(self._get_error_message(tok))
+
+                elif mo.lastgroup != 'COMMENT':
+                    yield tok
+
+    def _get_error_message(self, token):
+        """Return error message reflecting that token was encountered."""
+        return '(Line {}, Column {}) Unexpected token {}.'.format(
+            tok.line, tok.column, tok.value)
+
+    def _log_error(self, message):
+        """Record error with message."""
+        self._errors.append(message)
+
+    def _parse_zproj_tokens(self, tokens):
+        """Create ZProj object from iterable tokens."""
+        zp = ZProj()
+        peeker = Peeker(tokens)
+
+        while peeker:
+            self._expect_token(peeker, 'COLON')
+            zp.map_key(self._expect_token(peeker, 'IDENTIFIER'),
+                       self._generate_tokens(peeker, 'IDENTIFIER'))
+
+        return zp
+
+    def _peek_token(self, peeker):
+        """Return current token from peeker."""
+        return peeker.peek(0)
+
+    def _get_token(self, peeker):
+        """Return and consume current token from peeker."""
+        token = self._peek_token(peeker)
+        peeker.advance(1)
+        return token
+
+    def _match_token(self, peeker, kind):
+        """Check whether next token exists and has given kind."""
+        return peeker and peek_token(peeker).kind == kind
+
+
+def expect_token(peeker, kind):
+    """Error if no token of given kind; get and return otherwise."""
+    if match_token(peeker, kind):
+        return get_token(peeker)
+    raise ZProjError('Expected token of kind `{}`.'.format(kind))
+
+
+def generate_tokens(peeker, kind):
+    """Get and generate tokens while of given kind."""
+    while match_token(peeker, kind):
+        yield get_token(peeker)
+
+
+
+
 
 
 def compile_zproj_file(filename):
@@ -49,7 +208,7 @@ TOKEN_REGEX = r"""
     (?:^|(?<=\s)) (?:
         (?P<COMMENT>\#.*)|
         (?P<COLON>:)|
-        (?P<IDENTIFIER>[a-zA-Z][a-zA-Z_0-9]*)|
+        (?P<IDENTIFIER>[a-zA-Z][a-zA-Z_0-9\-]*)|
         (?P<ERROR>\S+?)
     ) (?:(?=\s)|$)"""
 
@@ -83,7 +242,6 @@ def tokenize_zproj_file(filename):
                 tok.line, tok.column, tok.value) for tok in bad_tokens))
 
 
-
 def parse_zproj_tokens(tokens):
     """Create ZProj object from iterable tokens."""
     zp = ZProj()
@@ -97,150 +255,43 @@ def parse_zproj_tokens(tokens):
     return zp
 
 
-def parse_zproj_tokens(tokens):
-    zp = ZProj()
-    tokens = list(tokens)
-    index = 0
-
-    while index < len(tokens):
-
-        if tokens[index].kind != 'COLON':
-            raise ZProjError('Expected colon.')
-        index += 1
-
-        if tokens[index].kind != 'IDENTIFIER':
-            raise ZProjError('Expected identifier.')
-        index += 1
-
-        
-
-
-
-def prime_tokens(head, tail):
-    if head is not None:
-        return (head, tail)
-    else:
-        return 
-def more_tokens(peeker):
-    try:
-        peeker.peek(0)
-    except StopIteration:
-        return False
-    else:
-        return True
-
-
 def peek_token(peeker):
+    """Return current token from peeker."""
     return peeker.peek(0)
 
 
 def get_token(peeker):
+    """Return and consume current token from peeker."""
     token = peek_token(peeker)
-    peeker.advance()
+    peeker.advance(1)
     return token
 
 
 def match_token(peeker, kind):
     """Check whether next token exists and has given kind."""
-    return more_tokens(peeker) and peek_token(peeker).kind == kind
+    return peeker and peek_token(peeker).kind == kind
 
 
 def expect_token(peeker, kind):
     """Error if no token of given kind; get and return otherwise."""
-    if match_token_kind(peeker, kind):
-        raise ZProjError('Expected token of kind `{}`.'.format(kind))
-    return peeker.get()
+    if match_token(peeker, kind):
+        return get_token(peeker)
+    raise ZProjError('Expected token of kind `{}`.'.format(kind))
 
 
-def generate_token_kind(peeker, kind):
+def generate_tokens(peeker, kind):
     """Get and generate tokens while of given kind."""
-    while match_token_kind(peeker, kind):
-        yield peeker.get()
+    while match_token(peeker, kind):
+        yield get_token(peeker)
 
 
-# def parse_zproj_tokens(tokens):
-#     zp = ZProj()
-#     itr = iter(tokens)
-#     head, tail = next(itr, None), itr
 
-#     while head is not None:
-#         require_token_kind(head, 'COLON')
-#         head, tail = advance_tokens(head, tail)
-#         require_token_kind(head, 'IDENTIFIER')
-#         key = head
-        
-#         zp.map_key(expect_token_kind(peeker, 'IDENTIFIER'),
-#                    generate_token_kind(peeker, 'IDENTIFIER'))
-
-#     return zp
+def disassemble_zproj(zproj):
+    """Return a source representation of zproj."""
+    return '\n'.join(disassemble_zproj_key(zproj, key)
+                     for key in sorted(zproj.keys))
 
 
-# def require_token_kind(tok, kind):
-#     if tok.kind != kind:
-#         raise ZProjError('Expected token of kind `{}`.'.format(kind))
-    
-
-# def read_token(head, tail):
-#     return head, next(tail, None), tail
-
-
-# def expect_token(head, tail, kind):
-#     if head.kind != kind:
-#         raise ZProjError('Expected token of kind `{}`.'.format(kind))
-#     return read_token(head, tail)
-
-# def parse_zproj_tokens(tokens):
-#     """Parse iterable tokens into ZProj object.
-
-#     'COLON'       -->  {'IDENTIFIER'}
-#     'IDENTIFIER'  -->  {'COLON', 'IDENTIFIER'}
-
-#     """
-#     zp = ZProj()
-#     peeker = Peeker(tokens)
-
-#     while not peeker.done:
-#         if peeker.peek.kind != 'COLON':
-#             raise ZProjError('Expected colon.')
-#         peeker.advance()
-
-#         if peeker.peek.kind != 'IDENTIFIER':
-#             raise ZProjError('Expected identifier.')
-#         key = peeker.peek
-#         peeker.advance()
-
-#         values = [
-#     current = next(itr, None)
-#     allowed = {'COLON', 'IDENTIFIER'}
-
-#     while current is not None:
-
-#         current = peek
-#         peek = next(itr, None)
-
-#         expect_token_kind(itr, 'COLON')
-#         key = expect_token_kind(itr, 'IDENTIFIER')
-        
-#         tok = next(itr, None)
-
-#         if tok is None:
-#             break
-# #        elif tok.kind != '
-#     return zp
-
-
-# def parse_zproj_tokens(tokens):
-#     state = 'colon'
-#     for token in tokens:
-#         if state == 'colon':
-#             if token.kind != 'COLON':
-#                 raise ZProjError('Expected colon.')
-#             state = 'key'
-#         elif state == 'key':
-#             if token.kind != 'IDENTIFIER':
-#                 raise ZProjError('Expected key.')
-#             key = token.value
-#             values = []
-#             state = 'value'
-#         elif token.kind == 'IDENTIFIER':
-#             pass
+def disassemble_zproj_key(zproj, key):
+    """Return a source representation of key in zproj."""
+    return ': {} {}'.format(key, zproj.lookup_key(key))
