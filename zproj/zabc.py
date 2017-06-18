@@ -3,23 +3,31 @@ import argparse
 import os
 import sys
 
-from zproj.zproj import ZProjError
-
+#from zproj.zproj import ZProjError
+from .zproj import ZProjError, compile_zproj_file
 
 REQUIRED_KEYS = set('input-file output-file entry-point app-name'.split())
 OPTIONAL_KEYS = set('library resource'.split())
 
 ZABC_FILE_NAME = '.zabc'
 ZABC_OUTPUT_FILE_NAME = 'main.asm'
+
+ZPROJ_FILE_NAME = '.zproj'
 TEMPLATE_FILE_NAME = os.path.join(os.path.dirname(__file__), 'template.asm')
 
 
 def main():
     """Run zabc as from command line."""
     print('Hello from zabc.py:main!')
-    with open(TEMPLATE_FILE_NAME, 'r') as file:
-        source = file.read()
 
+    error_list = []
+    try:
+        zproj = compile_zproj_file(ZPROJ_FILE_NAME, error_list)
+    except ZProjError:
+        print('\n'.join(error_list))
+    else:
+        with open(TEMPLATE_FILE_NAME, 'r') as file:
+            source = file.read()
 
 # def parse_source(source, syntax_errors):
 #     """Extract keys and values from zabc source string."""
