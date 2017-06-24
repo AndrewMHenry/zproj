@@ -6,7 +6,10 @@ setup(name='zproj',
           'console_scripts': [
               'zabc=zproj.zabc:main',
               'zmake=zproj.zmake:main',
+              'zapp=zproj.zapp:main'
           ]
       },
-      include_package_data=True
-)
+      author='Andrew Henry',
+      author_email='andrewmichaelhenry@gmail.com',
+      include_package_data=True,
+      install_requires=['peeker'])

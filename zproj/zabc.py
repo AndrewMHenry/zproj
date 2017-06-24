@@ -25,87 +25,67 @@ def main():
         zproj = compile_zproj_file(ZPROJ_FILE_NAME, error_list)
     except ZProjError:
         print('\n'.join(error_list))
-    else:
-        with open(TEMPLATE_FILE_NAME, 'r') as file:
-            source = file.read()
+        sys.exit(1)
 
-# def parse_source(source, syntax_errors):
-#     """Extract keys and values from zabc source string."""
-#     ret = {}
-#     key = None
-
-#     for words in source.split(':')[1:]:
-#         word_list = words.split()
-
-#         try:
-#             key = word_list[0]
-#         except IndexError:
-#             syntax_errors.append('Expected key (last key: {})'.format(key))
-#         else:
-#             values = word_list[1:]
-
-#             if key not in ret:
-#                 ret[key] = []
-#             ret[key].extend(values)
-
-#     return ret
+    with open(_get_value(zproj, 'app-file'), 'w') as file:
+        file.write(_generate_output(zproj))
 
 
-# def generate_output(keydict):
-#     """Return boilerplated source from keys."""
-#     with open(TEMPLATE_FILE_NAME, 'r') as template_file:
-#         template_source = template_file.read()
+def _generate_output(zproj):
+    """Return boilerplated source from ZProj object."""
+    with open(TEMPLATE_FILE_NAME, 'r') as template_file:
+        template_source = template_file.read()
 
-#     return template_source.format(
-#         app_name=keydict['app-name'][0],
-#         main_file=keydict['input-file'][0],
-#         library_includes=_format_includes(keydict, 'library'),
-#         resource_includes=_format_includes(keydict, 'resource'),
-#         memory_equates=_format_memory_equates(keydict),
-#         init_calls=_format_init_calls(keydict),
-#         entry_point=keydict['entry-point'][0],
-#         exit_calls=_format_exit_calls(keydict)
-#        )
-
-
-# def _format_includes(keydict, key):
-#     return '\n'.join(map('#include "{}"'.format, _get_values(keydict, key)))
+    return template_source.format(
+        app_name=_get_value(zproj, 'app-name'),
+        main_file=_get_value(zproj, 'main-file'),
+        library_includes=_format_includes(zproj, 'library'),
+        resource_includes=_format_includes(zproj, 'resource'),
+        memory_equates=_format_memory_equates(zproj),
+        init_calls=_format_init_calls(zproj),
+        entry_point=_get_value(zproj, 'entry-point'),
+        exit_calls=_format_exit_calls(zproj)
+       )
 
 
-# def _format_memory_equates(keydict):
-#     library_bases = _get_library_bases(keydict)
-#     result = ''
-#     addends = ['saveSScreen']
-
-#     for library_base in library_bases:
-#         result += '#define {}Data {}\n'.format(
-#             library_base, ' + '.join(addends))
-#         addends.append('{}_DATA_SIZE'.format(library_base.upper()))
-
-#     return result[:-1]
+def _get_value(zproj, key):
+    return list(zproj.lookup_key(key))[0]
 
 
-# def _format_init_calls(keydict):
-#     return _format_calls(
-#         '{}Init'.format(base) for base in _get_library_bases(keydict))
+def _format_includes(zproj, key):
+    return '\n'.join(map('#include "{}"'.format, zproj.lookup_key(key)))
 
 
-# def _format_exit_calls(keydict):
-#     return _format_calls(
-#         '{}Exit'.format(base) for base in reversed(_get_library_bases(keydict)))
+def _format_memory_equates(zproj):
+    library_bases = _get_library_bases(zproj)
+    result = ''
+    addends = ['saveSScreen']
+
+    for library_base in library_bases:
+        result += '#define {}Data {}\n'.format(
+            library_base, ' + '.join(addends))
+        addends.append('{}_DATA_SIZE'.format(library_base.upper()))
+
+    return result[:-1]
 
 
-# def _get_library_bases(keydict):
-#     return [os.path.splitext(lib)[0]
-#             for lib in _get_values(keydict, 'library')]
+def _format_init_calls(zproj):
+    return _format_calls(
+        '{}Init'.format(base) for base in _get_library_bases(zproj))
 
 
-# def _format_calls(routines):
-#     return '\n'.join('{:8}{:8}{}'.format('', 'CALL', r) for r in routines)
+def _format_exit_calls(zproj):
+    return _format_calls(
+        '{}Exit'.format(base) for base in reversed(_get_library_bases(zproj)))
 
 
-# def _get_values(keydict, key):
-#     return keydict[key] if key in keydict else []
+def _get_library_bases(zproj):
+    return [os.path.splitext(lib)[0]
+            for lib in zproj.lookup_key('library')]
+
+
+def _format_calls(routines):
+    return '\n'.join('{:8}{:8}{}'.format('', 'CALL', r) for r in routines)
 
 
 # def _error(message):

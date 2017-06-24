@@ -41,179 +41,36 @@ class ZProj(object):
         return list(self._key_dict[key])
 
 
-class ZProjTokenizer(object):    
-    """Class to generate tokens from ZProj source file."""
-
-    def __init__(self):
-        """Initialize "empty" ZProjTokenizer object."""
-        self._errors = []
-
-    # PUBLIC INTERFACE
-
-    def tokenize_file(self, filename):
-        """Generate tokens from source in file named filename."""
-        with open(filename, 'r') as file:
-            lines = list(file)
-
-        for line_number, line_string in enumerate(lines):
-            for mo in re.finditer(TOKEN_REGEX, line_string, flags=re.VERBOSE):
-                tok = Token(
-                    kind=mo.lastgroup,
-                    value=mo.group(mo.lastgroup),
-                    filename=filename,
-                    line=line_number,
-                    column=mo.start(mo.lastgroup))
-
-                if mo.lastgroup == 'ERROR':
-                    self._log_error(self._get_error_message(tok))
-
-                elif mo.lastgroup != 'COMMENT':
-                    yield tok
-
-    @property
-    def error_list(self):
-        """Return list of errors encountered."""
-        return self._errors
-
-    # PRIVATE HELPERS
-
-    def _get_error_message(self, token):
-        """Return error message reflecting that token was encountered."""
-        return '(Line {}, Column {}) Unexpected token {}.'.format(
-            tok.line, tok.column, tok.value)
-
-    def _log_error(self, message):
-        """Record error with message."""
-        self._errors.append(message)
-
-
-
-class ZProjParser(object):
-
-    def __init__(self):
-        pass
-
-    def parse_tokens(self, tokens):
-        """Return ZProj object from iterable tokens."""
-        
-class ZProjCompiler(object):
-    """Class to generate tokens from ZProj source file."""
-
-    def __init__(self):
-        """Initialize "empty" ZProjCompiler object."""
-        self._errors = []
-
-    # PUBLIC INTERFACE
-
-    @property
-    def error_list(self):
-        """Return list of errors encountered."""
-        return self._errors
-
-    def compile_file(self, filename):
-        """Create ZProj object from source in file named filename.
-
-        If the source contains errors and thus cannot be compiled,
-        ZProjError is raised.
-
-        """
-        tokens = list(self.tokenize_file(filename))
-        
-
-    # PRIVATE HELPERS
-
-    def tokenize_file(self, filename):
-        """Generate tokens from source in file named filename."""
-        with open(filename, 'r') as file:
-            lines = list(file)
-
-        for line_number, line_string in enumerate(lines):
-            for mo in re.finditer(TOKEN_REGEX, line_string, flags=re.VERBOSE):
-                tok = Token(
-                    kind=mo.lastgroup,
-                    value=mo.group(mo.lastgroup),
-                    filename=filename,
-                    line=line_number,
-                    column=mo.start(mo.lastgroup))
-
-                if mo.lastgroup == 'ERROR':
-                    self._log_error(self._get_error_message(tok))
-
-                elif mo.lastgroup != 'COMMENT':
-                    yield tok
-
-    def _get_error_message(self, token):
-        """Return error message reflecting that token was encountered."""
-        return '(Line {}, Column {}) Unexpected token {}.'.format(
-            tok.line, tok.column, tok.value)
-
-    def _log_error(self, message):
-        """Record error with message."""
-        self._errors.append(message)
-
-    def _parse_zproj_tokens(self, tokens):
-        """Create ZProj object from iterable tokens."""
-        zp = ZProj()
-        peeker = Peeker(tokens)
-
-        while peeker:
-            self._expect_token(peeker, 'COLON')
-            zp.map_key(self._expect_token(peeker, 'IDENTIFIER'),
-                       self._generate_tokens(peeker, 'IDENTIFIER'))
-
-        return zp
-
-    def _peek_token(self, peeker):
-        """Return current token from peeker."""
-        return peeker.peek(0)
-
-    def _get_token(self, peeker):
-        """Return and consume current token from peeker."""
-        token = self._peek_token(peeker)
-        peeker.advance(1)
-        return token
-
-    def _match_token(self, peeker, kind):
-        """Check whether next token exists and has given kind."""
-        return peeker and peek_token(peeker).kind == kind
-
-
-def expect_token(peeker, kind):
-    """Error if no token of given kind; get and return otherwise."""
-    if match_token(peeker, kind):
-        return get_token(peeker)
-    raise ZProjError('Expected token of kind `{}`.'.format(kind))
-
-
-def generate_tokens(peeker, kind):
-    """Get and generate tokens while of given kind."""
-    while match_token(peeker, kind):
-        yield get_token(peeker)
-
-
-
-
-
-
-def compile_zproj_file(filename):
-    """Compile source in file named filename into a ZProj object."""
-    return parse_zproj_tokens(tokenize_zproj_file(filename))
-
-
-# Inspired by tokenizer example in Python re docs.
-
 Token = collections.namedtuple('Token', 'kind value filename line column')
+
+
+# MODULE INTERFACE: file compiler
+
+def compile_zproj_file(filename, error_list=None):
+    """Compile source in file named filename into a ZProj object.
+
+    If the optional argument error_list is supplied, any error
+    messages generated are appended to it.
+
+    """
+    tokens = tokenize_zproj_file(filename, error_list)
+    zproj = parse_zproj_tokens(tokens, error_list)
+    return zproj
+
+
+# Tokenization phase (inspired by tokenizer example in Python re docs)
 
 TOKEN_REGEX = r"""
     (?:^|(?<=\s)) (?:
         (?P<COMMENT>\#.*)|
         (?P<COLON>:)|
+        (?P<ATOM>[a-zA-Z0-9\.\-]+)|
         (?P<IDENTIFIER>[a-zA-Z][a-zA-Z_0-9\-]*)|
         (?P<ERROR>\S+?)
     ) (?:(?=\s)|$)"""
 
 
-def tokenize_zproj_file(filename):
+def tokenize_zproj_file(filename, error_list=None):
     """Generate Tokens from ZProj source in file name filename."""
     with open(filename, 'r') as file:
         lines = list(file)
@@ -234,23 +91,44 @@ def tokenize_zproj_file(filename):
             elif mo.lastgroup != 'COMMENT':
                 yield tok
 
+    if error_list is not None:
+        error_list.extend(
+            _error_message('Unexpected token {token.value}', bad_token)
+            for bad_token in bad_tokens)
+
     if bad_tokens:
         raise ZProjError(
-            'File `{}` contained one or more unexpected tokens:\n'
-            '\n'
-            '\n'.join('  Line {}, Column {}: {}'.format(
-                tok.line, tok.column, tok.value) for tok in bad_tokens))
+            'ERROR: File `{}` could not be tokenized.'.format(filename))
 
 
-def parse_zproj_tokens(tokens):
-    """Create ZProj object from iterable tokens."""
+# Parsing phase
+
+def parse_zproj_tokens(tokens, error_list=None):
+    """Create ZProj object from iterable tokens.
+    
+    Currently, this function stops parsing tokens upon the first syntax
+    error, because it would be difficult to diagnose the remainder.
+    Therefore, it will generate a maximum of one error message.  However,
+    in case this behavior changes in the future, and for uniformity with
+    tokenize_zproj_file above, this function meets the error_list
+    interface.
+
+    """
     zp = ZProj()
     peeker = Peeker(tokens)
 
-    while peeker:
-        expect_token(peeker, 'COLON')
-        zp.map_key(expect_token(peeker, 'IDENTIFIER'),
-                   generate_tokens(peeker, 'IDENTIFIER'))
+    try:
+        while peeker:
+            expect_token(peeker, 'COLON')
+            key = expect_token(peeker, 'ATOM').value
+            values = [token.value
+                      for token in generate_tokens(peeker, 'ATOM')]
+            zp.map_key(key, values)
+
+    except ZProjError as e:
+        if error_list is not None:
+            error_list.append(str(e))
+        raise e
 
     return zp
 
@@ -274,9 +152,19 @@ def match_token(peeker, kind):
 
 def expect_token(peeker, kind):
     """Error if no token of given kind; get and return otherwise."""
-    if match_token(peeker, kind):
-        return get_token(peeker)
-    raise ZProjError('Expected token of kind `{}`.'.format(kind))
+    if not peeker:
+        raise ZProjError('Unexpected end of input.')
+
+    token = get_token(peeker)
+
+    if token.kind != kind:
+        raise ZProjError(
+            _error_message(
+                ('Expected token of kind `{}`; '
+                 'found `{{token.value}}` '
+                 'of kind {{token.kind}}.').format(kind), token))
+
+    return token
 
 
 def generate_tokens(peeker, kind):
@@ -285,6 +173,17 @@ def generate_tokens(peeker, kind):
         yield get_token(peeker)
 
 
+def _syntax_error(message, token):
+    pass
+
+def _error_message(message, token):
+    return (('ERROR ('
+             'file {token.filename}, '
+             'line {token.line}, '
+             'column {token.column}'
+             '): ') + message).format(token=token)
+
+# ZProj object rendering
 
 def disassemble_zproj(zproj):
     """Return a source representation of zproj."""
@@ -294,4 +193,4 @@ def disassemble_zproj(zproj):
 
 def disassemble_zproj_key(zproj, key):
     """Return a source representation of key in zproj."""
-    return ': {} {}'.format(key, zproj.lookup_key(key))
+    return ': {} {}'.format(key, ' '.join(zproj.lookup_key(key)))

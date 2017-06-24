@@ -2,3 +2,6 @@ test/__pycache__/
 zproj/__pycache__/
 zproj.egg-info/
 *~
+dist/
+zproj/lib/
+testlib.asm
