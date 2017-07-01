@@ -11,6 +11,9 @@ it contains the following tools:
 - zabc (Z80 Application Boilerplate Compiler), which generates an assembly
   language file that can be assembled into an application.
 
+It also includes some assembly language libraries and a sample application to
+build.
+
 
 INSTALLATION AND DEPENDENCIES
 =============================
@@ -36,3 +39,13 @@ The following dependencies are required to use this project:
 - rabbitsign.  TI-83 Plus applications must be digitally signed in order to
   be loaded onto calculators, and rabbitsign is the application signer
   currently supported by this project.
+
+
+EXAMPLE
+=======
+
+This project ships with an example "Hello World" application that can be built
+using the tools contained in this project.  After installing the project and the
+above dependencies, changing directories into ``examples/hello`` and running
+``zmake`` followed by ``make`` should build a .8xk file that can be loaded onto
+an actual or simulated TI-83 Plus series calculator.
