@@ -1,0 +1,9 @@
+# Core program declarations
+: main-file hello.asm
+: entry-point main
+: library interrupt.asm screen.asm draw.asm write.asm keyboard.asm
+: resource fontFBF.asm
+
+# App-specific declarations
+: app-file hello-app.asm
+: app-name Hello
