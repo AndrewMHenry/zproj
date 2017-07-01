@@ -5,3 +5,7 @@ zproj.egg-info/
 dist/
 zproj/lib/
 testlib.asm
+examples/hello/Makefile
+examples/hello/hello-app.asm
+examples/hello/hello-app.8xk
+examples/hello/hello-app.hex
