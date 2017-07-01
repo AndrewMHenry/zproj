@@ -3,6 +3,7 @@ import collections
 
 from peeker import Peeker
 
+ZPROJ_FILENAME = '.zproj'
 
 class ZProjError(Exception):
     """Custom exception for zproj."""
@@ -45,6 +46,18 @@ Token = collections.namedtuple('Token', 'kind value filename line column')
 
 
 # MODULE INTERFACE: file compiler
+
+def compile_zproj_file_wrapper():
+    """Call compile_zproj_file; if errors, print them and exit."""
+    error_list = []
+    try:
+        zproj = compile_zproj_file(ZPROJ_FILENAME, error_list)
+    except ZProjError:
+        print('\n'.join(error_list))
+        sys.exit(1)
+
+    return zproj
+
 
 def compile_zproj_file(filename, error_list=None):
     """Compile source in file named filename into a ZProj object.
