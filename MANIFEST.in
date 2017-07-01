@@ -2,3 +2,5 @@ include zproj/template.asm
 include zproj/template-Makefile
 include zproj/lib/*
 include zproj/lib/spasm/*
+include zproj/examples/hello/hello.asm
+include zproj/examples/hello/.zproj
