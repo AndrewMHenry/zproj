@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='zproj',
-      version='1.0.9',
+      version='1.0.10',
       packages=find_packages(),
       entry_points = {
           'console_scripts': [
@@ -14,4 +14,5 @@ setup(name='zproj',
       author_email='andrewmichaelhenry@gmail.com',
       url='https://github.com/AndrewMHenry/zproj',
       include_package_data=True,
+      classifiers="Programming Language :: Python :: 3 :: Only",
       install_requires=['peeker'])
