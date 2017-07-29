@@ -25,4 +25,4 @@ def main():
                      app_asm_filename, app_hex_filename]
     subprocess.call(assemble_args)
 
-    subprocess.call(['rabbitsign', '-g', '-k', KEY_PATH, app_hex_filename])
+    subprocess.call(['rabbitsign', '-g', '-k', KEY_FILE, app_hex_filename])
