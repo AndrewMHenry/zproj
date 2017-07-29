@@ -7,7 +7,8 @@ setup(name='zproj',
           'console_scripts': [
               'zabc=zproj.zabc:main',
               'zmake=zproj.zmake:main',
-              'zapp=zproj.zapp:main'
+              'zapp=zproj.zapp:main',
+              'zproj=zproj.zproj_tools:main'
           ]
       },
       author='Andrew Henry',
