@@ -4,8 +4,3 @@ zproj.egg-info/
 *~
 dist/
 zproj/lib/
-testlib.asm
-zproj/examples/hello/Makefile
-zproj/examples/hello/hello-app.asm
-zproj/examples/hello/hello-app.8xk
-zproj/examples/hello/hello-app.hex
