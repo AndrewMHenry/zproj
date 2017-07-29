@@ -23,6 +23,7 @@ def main():
     assemble_args = [ASSEMBLER,
                      '-I', INCLUDE_DIR,
                      app_asm_filename, app_hex_filename]
+    print(assemble_args)
     subprocess.call(assemble_args)
 
     subprocess.call(['rabbitsign', '-g', '-k', KEY_FILE, app_hex_filename])
