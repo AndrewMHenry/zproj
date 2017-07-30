@@ -15,10 +15,10 @@ def main():
     app_hex_filename = os.path.splitext(app_asm_filename)[0] + '.hex'
 
     subprocess.call('zabc')
+
     assemble_args = [ASSEMBLER,
                      '-I', data.get_include_dir(ASSEMBLER),
                      app_asm_filename, app_hex_filename]
-    print(assemble_args)
     subprocess.call(assemble_args)
 
     subprocess.call(['rabbitsign', '-g', '-k', data.KEY_FILE, app_hex_filename])
