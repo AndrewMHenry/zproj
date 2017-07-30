@@ -2,15 +2,9 @@ import subprocess
 import os
 
 from .zproj import ZProj, ZProjError, compile_zproj_file, disassemble_zproj
+from . import data
 
 ASSEMBLER = 'spasm'
-
-LIB_DIR = os.path.join(os.path.dirname(__file__), 'lib')
-INCLUDE_DIR = os.path.join(LIB_DIR, 'spasm')
-
-KEY_DIR = LIB_DIR
-KEY_BASE = '0104.key'
-KEY_FILE = os.path.join(KEY_DIR, KEY_BASE)
 
 
 def main():
@@ -22,9 +16,9 @@ def main():
 
     subprocess.call('zabc')
     assemble_args = [ASSEMBLER,
-                     '-I', INCLUDE_DIR,
+                     '-I', data.get_include_dir(ASSEMBLER),
                      app_asm_filename, app_hex_filename]
     print(assemble_args)
     subprocess.call(assemble_args)
 
-    subprocess.call(['rabbitsign', '-g', '-k', KEY_FILE, app_hex_filename])
+    subprocess.call(['rabbitsign', '-g', '-k', data.KEY_FILE, app_hex_filename])
