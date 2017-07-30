@@ -77,7 +77,7 @@ TOKEN_REGEX = r"""
     (?:^|(?<=\s)) (?:
         (?P<COMMENT>\#.*)|
         (?P<COLON>:)|
-        (?P<ATOM>[a-zA-Z0-9\.\-]+)|
+        (?P<ATOM>[a-zA-Z_0-9\.\-]+)|
         (?P<IDENTIFIER>[a-zA-Z][a-zA-Z_0-9\-]*)|
         (?P<ERROR>\S+?)
     ) (?:(?=\s)|$)"""
