@@ -17,6 +17,7 @@ def main():
     subprocess.call('zabc')
 
     assemble_args = [ASSEMBLER,
+                     '-T',
                      '-I', data.get_include_dir(ASSEMBLER),
                      app_asm_filename, app_hex_filename]
     subprocess.call(assemble_args)
